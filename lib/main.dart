@@ -1,15 +1,20 @@
+import 'app.dart';
 import 'package:flutter/material.dart';
-import 'package:softwareproject/homescreen/homescreen.dart';
-// import 'login.dart';
-// import 'profilescreen.dart';
+import 'common/theme_model.dart';
+import 'common/theme_provider.dart';
+import 'package:provider/provider.dart';
 
-void main(){
-  return runApp(
-    const MaterialApp(
-      debugShowCheckedModeBanner: false,
-        // home : LoginClass(),
-      home: HomeScreen(),
-      // home: ProfileScreen(),
+void main() async{
+  WidgetsFlutterBinding.ensureInitialized();
+  final themeModel = ThemeModel();
+  await themeModel.loadThemePreference();
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => themeModel),
+        ChangeNotifierProvider(create: (_) => ThemeProvider(themeModel))
+      ],
+      child: const App(),
     ),
   );
 }

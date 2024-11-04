@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
-import 'login.dart';
-import 'package:softwareproject/homescreen/homescreen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:softwareproject/UI/Home/HomeScreen.dart';
+import 'package:softwareproject/UI/Login/LoginScreen.dart';
+import 'package:softwareproject/Utils/helper/helper_functions.dart';
+import 'package:jwt_decoder/jwt_decoder.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -10,18 +13,42 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
+
   @override
-  void initState(){
+  void initState() {
     super.initState();
-    Future.delayed(const Duration(seconds: 5), (){
-      Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-              builder: (context) => const Login(),
-          ),
-      );
+    Future.delayed(const Duration(seconds: 1), () {
+      if (mounted) {
+        whereToGo();
+      }
     });
   }
+
+  whereToGo() async {
+    final prefs = await SharedPreferences.getInstance();
+    bool isLoggedIn = prefs.getBool('isLoggedIn')?? false;
+
+    String token = prefs.getString('token')?? "";
+    Map<String,dynamic> tokenData;
+    try{
+      tokenData = JwtDecoder.decode(token);
+    } catch(e){
+      tokenData = {
+        "fullName": "",
+        "email": ""
+      };
+    }
+
+    final String fullName = tokenData['fullName'];
+    final String email = tokenData['email'];
+
+    if(isLoggedIn){
+      HelperFunctions.shiftToScreen(context, HomeScreen(fullName: fullName, email: email,));
+    } else {
+      HelperFunctions.shiftToScreen(context, const LoginScreen());
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(

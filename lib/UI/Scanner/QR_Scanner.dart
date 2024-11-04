@@ -1,8 +1,15 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:qr_code_scanner/qr_code_scanner.dart';
 import 'package:softwareproject/ImageViewPage.dart';
+import 'package:softwareproject/UI/Status/StatusScreen.dart';
+import 'package:softwareproject/Utils/helper/helper_functions.dart';
 
 class QRCodeScanner extends StatefulWidget {
+  const QRCodeScanner({super.key, required this.studentId});
+  final String studentId;
+
   @override
   _QRCodeScannerState createState() => _QRCodeScannerState();
 }
@@ -11,19 +18,35 @@ class _QRCodeScannerState extends State<QRCodeScanner> {
   final GlobalKey qrKey = GlobalKey(debugLabel: 'QR');
   QRViewController? controller;
   bool isFlashOn = false;
+  bool isScanned = false;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'Scan QR Code',
-          style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
-        ),
+        automaticallyImplyLeading: false,
+        toolbarHeight: 60,
+        elevation: 8,
         backgroundColor: Colors.deepPurpleAccent,
-        centerTitle: true,
-        elevation: 4,
-        shadowColor: Colors.deepPurpleAccent.withOpacity(0.3),
+        title: Row(
+          children: [
+            GestureDetector(
+              onTap: () {
+                Navigator.pop(context);
+              },
+              child: const Icon(Icons.arrow_left, size: 30, color: Colors.white),
+            ),
+            const SizedBox(width: 10),
+            const Text(
+              "Scan QR Code",
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
       ),
       body: Column(
         children: <Widget>[
@@ -102,11 +125,27 @@ class _QRCodeScannerState extends State<QRCodeScanner> {
   void _onQRViewCreated(QRViewController controller) {
     this.controller = controller;
     controller.scannedDataStream.listen((scanData) {
-      setState(() {
-        print('Scanned data: ${scanData.code}');
-        Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => ImageViewPage(qrCodeData: scanData.toString()),));
-      });
+      if(!isScanned){
+        setState(() {
+          isScanned = true;
+        });
+        controller.pauseCamera();
+        setState(() {});
+        HelperFunctions.navigateToScreen(context, StatusScreen(
+          qrData: getQRData(scanData.code!), studentId: widget.studentId,)
+        );
+      }
     });
+  }
+
+  @override
+  void reassemble() {
+    super.reassemble();
+    if (Platform.isAndroid) {
+      controller!.pauseCamera();
+    } else if (Platform.isIOS) {
+      controller!.resumeCamera();
+    }
   }
 
   @override
@@ -114,4 +153,19 @@ class _QRCodeScannerState extends State<QRCodeScanner> {
     controller?.dispose();
     super.dispose();
   }
+
+  Map<String, dynamic> getQRData(String data) {
+    final Map<String, dynamic> qrDataMap = {};
+
+    final regex = RegExp(r"(\w+)='([^']*)'");
+    final matches = regex.allMatches(data);
+
+    for (final match in matches) {
+      qrDataMap[match.group(1)!] = match.group(2)!;  // Group 1 is key, Group 2 is value
+    }
+
+    return qrDataMap;
+  }
+
 }
+
